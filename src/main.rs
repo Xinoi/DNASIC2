@@ -8,10 +8,6 @@ const WINDOW_HEIGHT: f32 = 800.0;
 
 const PROJECTILE_SPEED: i32 = 0;
 
-fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
-}
-
 #[derive(Resource, Component)]
 struct GameState {
     score: i32,
@@ -48,9 +44,12 @@ fn setup(commands: &mut Commands, asset_server: Res<AssetServer>, materials: Res
 fn setup_level(mut commands: Commands) {
    //game Rules
    commands.insert_resource(GameRules{
-        
-   })
+        max_enemies: 20,
+        boss_phase: false,
+   });
 
+fn setup_camera(mut commands: Commands) {
+    commands.spawn(Camera2dBundle::default());
 }
 
 fn main() { 
