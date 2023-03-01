@@ -6,8 +6,6 @@ use bevy::prelude::*;
 const WINDOW_WIDHT: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 800.0;
 
-const PROJECTILE_SPEED: i32 = 0;
-
 #[derive(Resource, Component)]
 struct GameState {
     score: i32,
@@ -21,7 +19,7 @@ struct GameRules {
 }
 
 #[derive(Component)]
-struct Player {}
+struct Player;
 
 #[derive(Component)]
 struct Health {
@@ -41,13 +39,23 @@ fn setup(commands: &mut Commands, asset_server: Res<AssetServer>, materials: Res
     
 }
 
-fn setup_level(mut commands: Commands) {
+fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
    //game Rules
    commands.insert_resource(GameRules{
         max_enemies: 20,
         boss_phase: false,
    });
-
+    
+   //PlayerShip
+   commands.spawn((SpriteBundle {
+       texture: asset_server.load("ShipTexture.png"),
+       ..default()
+   },
+        Player,
+        Health{amount: 100},
+   ));
+}
+    
 fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
@@ -55,7 +63,8 @@ fn setup_camera(mut commands: Commands) {
 fn main() { 
     App::new()
         .add_startup_system(setup_camera)
-        .insert_resource(ClearColor(Color::rgb(0.00, 0.00, 0.89)))
+        .insert_resource(ClearColor(Color::rgb(0.00, 0.00, 0.00)))
+        .add_startup_system(setup_level)
         .add_plugins(DefaultPlugins.set(
                 WindowPlugin {
                     window: WindowDescriptor {
