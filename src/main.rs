@@ -81,7 +81,6 @@ fn player_move(input: Res<Input<KeyCode>>, mut query: Query<&mut Velocity, With<
     let mut dir_x = 0.0;
     let mut dir_y = 0.0;
 
-
     if input.pressed(KeyCode::W) {
         dir_y = 1.0;
     }
@@ -97,8 +96,6 @@ fn player_move(input: Res<Input<KeyCode>>, mut query: Query<&mut Velocity, With<
 
     vel.x = dir_x * PLAYER_SPEED;
     vel.y = dir_y * PLAYER_SPEED;
-    
-
 }
 
 fn move_system(mut query: Query<(&mut Transform, &Velocity)>) {
@@ -144,7 +141,6 @@ fn main() {
               .with_system(move_system)
               .with_system(collision_check)
             )
-
         .add_system(bevy::window::close_on_esc)
         .add_plugins(DefaultPlugins.set(
                 WindowPlugin {
@@ -158,5 +154,4 @@ fn main() {
                 }
                 ))
         .run();
-    
 }
