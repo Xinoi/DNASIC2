@@ -2,13 +2,14 @@
 #![allow(unused_variables)]
 
 use bevy::prelude::*;
-
-const TIME_STEP: f32 = 1.0 / 60.0;
+use bevy::time::FixedTimestep;
 
 const WINDOW_WIDHT: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 800.0;
 
-const PLAYER_SPEED: f32 = 5.0;
+const TIME_STEP: f32 = 1.0 / 60.0;
+
+const PLAYER_SPEED: f32 = 10.0;
 
 #[derive(Resource, Component)]
 struct GameState {
@@ -106,6 +107,25 @@ fn move_system(mut query: Query<(&mut Transform, &Velocity)>) {
         transform.translation.y += velocity.y;
     }
 }
+
+fn collision_check(mut player_query: Query<&mut Transform, With<Player>>) {
+    //Player
+    let mut player_trans = player_query.single_mut();
+    let fixed_window_x = WINDOW_WIDHT / 2.0;
+    let fixed_window_y = WINDOW_HEIGHT / 2.0;
+    let player_x  = player_trans.translation.x;
+    let player_y = player_trans.translation.y;
+
+    if player_x > fixed_window_x {
+        player_trans.translation.x = fixed_window_x;
+    }else if player_x < -fixed_window_x {
+        player_trans.translation.x = -fixed_window_x;
+    }else if player_y > fixed_window_y {
+        player_trans.translation.y = fixed_window_y;
+    }else if player_y < -fixed_window_y {
+        player_trans.translation.y = -fixed_window_y;
+    }
+}
     
 fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
@@ -117,8 +137,15 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.00, 0.00, 0.00)))
         .add_startup_system(setup)
         .add_startup_system_to_stage(StartupStage::PostStartup, setup_level)
-        .add_system(move_system)
-        .add_system(player_move)
+        .add_system_set(
+            SystemSet::new()
+              .with_run_criteria(FixedTimestep::step(TIME_STEP as f64)) 
+              .with_system(player_move)
+              .with_system(move_system)
+              .with_system(collision_check)
+            )
+
+        .add_system(bevy::window::close_on_esc)
         .add_plugins(DefaultPlugins.set(
                 WindowPlugin {
                     window: WindowDescriptor {
