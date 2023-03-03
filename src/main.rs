@@ -24,13 +24,21 @@ struct GameRules {
 }
 
 #[derive(Component)]
-struct Velocity{
+struct Velocity {
     x: f32,
     y: f32,
 }
 
 #[derive(Component)]
 struct Player;
+
+struct ShootEvent {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Component)]
+struct Laser;
 
 #[derive(Component)]
 struct Health {
@@ -47,55 +55,78 @@ enum Enemy {
 }
 
 fn setup() {
-   println!("Startet"); 
+    println!("Startet");
 }
 
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
-   //game Rules
-   commands.insert_resource(GameRules{
+    //game Rules
+    commands.insert_resource(GameRules {
         max_enemies: 20,
         boss_phase: false,
-   });
-    
-   //PlayerShip
-   commands.spawn((SpriteBundle {
-       transform: Transform {
-           scale: Vec3::new(2.0, 2.0, 0.0),
-           ..default()
-       },
-       texture: asset_server.load("ShipTexture.png"),
-      ..default()
-   },
-        Player,
-        Health{amount: 100},
-        Velocity{
-            x: 0.0,
-            y: 0.0,
+    });
+
+    //PlayerShip
+    commands.spawn((
+        SpriteBundle {
+            transform: Transform {
+                scale: Vec3::new(2.0, 2.0, 0.0),
+                ..default()
+            },
+            texture: asset_server.load("ShipTexture.png"),
+            ..default()
         },
-   ));
+        Player,
+        Health { amount: 100 },
+        Velocity { x: 0.0, y: 0.0 },
+    ));
 }
 
-fn player_move(input: Res<Input<KeyCode>>, mut query: Query<&mut Velocity, With<Player>>) {
+fn spawn_laser(asset_server: Res<AssetServer>, mut commands: Commands, mut shoot_events: EventReader<ShootEvent>) {
 
-    let mut vel = query.single_mut();
-    let mut dir_x = 0.0;
-    let mut dir_y = 0.0;
+    for shoot_event in shoot_events.iter() {
+        commands.spawn((
+            Laser,
+            Velocity {x: 0.0, y: 15.0},
+            SpriteBundle {
+                transform: Transform {
+                    translation: Vec3::new(shoot_event.x, shoot_event.y, 2.0),
+                    ..default()
+                },
+                texture: asset_server.load("BlueLaser.png"),
+                ..default()
+        }));
+    }
+}
 
-    if input.pressed(KeyCode::W) {
-        dir_y = 1.0;
-    }
-    if input.pressed(KeyCode::S) {
-        dir_y = -1.0;
-    }
-    if input.pressed(KeyCode::D) {
-        dir_x = 1.0;
-    }
-    if input.pressed(KeyCode::A) {
-        dir_x = -1.0;
+fn player_controll(mut event: EventWriter<ShootEvent>, input: Res<Input<KeyCode>>, mut query: Query<(&mut Velocity, &Transform), With<Player>>) {
+    for (mut velocity, transform) in &mut query {
+        let mut dir_x = 0.0;
+        let mut dir_y = 0.0;
+
+        if input.pressed(KeyCode::W) {
+            dir_y = 1.0;
+        }
+        if input.pressed(KeyCode::S) {
+            dir_y = -1.0;
+        }
+        if input.pressed(KeyCode::D) {
+            dir_x = 1.0;
+        }
+        if input.pressed(KeyCode::A) {
+            dir_x = -1.0;
+        }
+
+        if input.pressed(KeyCode::Space) {
+            event.send(ShootEvent {
+                x: transform.translation.x,
+                y: transform.translation.y,
+            })
+        }
+        velocity.x = dir_x * PLAYER_SPEED;
+        velocity.y = dir_y * PLAYER_SPEED;
     }
 
-    vel.x = dir_x * PLAYER_SPEED;
-    vel.y = dir_y * PLAYER_SPEED;
+
 }
 
 fn move_system(mut query: Query<(&mut Transform, &Velocity)>) {
@@ -110,48 +141,48 @@ fn collision_check(mut player_query: Query<&mut Transform, With<Player>>) {
     let mut player_trans = player_query.single_mut();
     let fixed_window_x = WINDOW_WIDHT / 2.0;
     let fixed_window_y = WINDOW_HEIGHT / 2.0;
-    let player_x  = player_trans.translation.x;
+    let player_x = player_trans.translation.x;
     let player_y = player_trans.translation.y;
 
     if player_x > fixed_window_x {
         player_trans.translation.x = fixed_window_x;
-    }else if player_x < -fixed_window_x {
+    } else if player_x < -fixed_window_x {
         player_trans.translation.x = -fixed_window_x;
-    }else if player_y > fixed_window_y {
+    } else if player_y > fixed_window_y {
         player_trans.translation.y = fixed_window_y;
-    }else if player_y < -fixed_window_y {
+    } else if player_y < -fixed_window_y {
         player_trans.translation.y = -fixed_window_y;
     }
 }
-    
+
 fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
-fn main() { 
+fn main() {
     App::new()
         .add_startup_system(setup_camera)
         .insert_resource(ClearColor(Color::rgb(0.00, 0.00, 0.00)))
+        .add_event::<ShootEvent>()
         .add_startup_system(setup)
         .add_startup_system_to_stage(StartupStage::PostStartup, setup_level)
         .add_system_set(
             SystemSet::new()
-              .with_run_criteria(FixedTimestep::step(TIME_STEP as f64)) 
-              .with_system(player_move)
-              .with_system(move_system)
-              .with_system(collision_check)
-            )
+                .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
+                .with_system(player_controll)
+                .with_system(move_system)
+                .with_system(collision_check)
+                .with_system(spawn_laser)
+        )
         .add_system(bevy::window::close_on_esc)
-        .add_plugins(DefaultPlugins.set(
-                WindowPlugin {
-                    window: WindowDescriptor {
-                        title: "DNAISC2".to_string(),
-                        width: WINDOW_WIDHT,
-                        height: WINDOW_HEIGHT,
-                        ..default()
-                    },
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                title: "DNAISC2".to_string(),
+                width: WINDOW_WIDHT,
+                height: WINDOW_HEIGHT,
                 ..default()
-                }
-                ))
+            },
+            ..default()
+        }))
         .run();
 }
