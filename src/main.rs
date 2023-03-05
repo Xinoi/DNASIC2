@@ -13,6 +13,8 @@ const TIME_STEP: f32 = 1.0 / 60.0;
 
 const PLAYER_SPEED: f32 = 10.0;
 
+#[derive(Component)]
+struct MainCamera;
 
 #[derive(Resource, Component)]
 struct GameState {
@@ -159,6 +161,19 @@ fn player_controll(
     }
 }
 
+fn player_rotation(
+    player_query: Query<&mut Transform, With<Player>>,
+    windows: Res<Windows>,
+) {
+    let win = windows.get_primary().expect("no primary window");
+    let mouse_pos: Vec2 = match win.cursor_position() {
+        Some(num) => num,
+        None => Vec2::new(0.0, 0.0),
+    };
+    
+    println!("{}, {}", mouse_pos.x, mouse_pos.y);
+}
+
 fn move_system(mut query: Query<(&mut Transform, &Velocity)>) {
     for (mut transform, velocity) in &mut query {
         transform.translation.x += velocity.x;
@@ -185,8 +200,9 @@ fn collision_check(mut player_query: Query<&mut Transform, With<Player>>) {
     }
 }
 
+
 fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2dBundle::default(), MainCamera));
 }
 
 fn main() {
@@ -204,6 +220,7 @@ fn main() {
                 .with_system(collision_check)
                 .with_system(spawn_laser),
         )
+        .add_system(player_rotation)
         .add_system(bevy::window::close_on_esc)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
