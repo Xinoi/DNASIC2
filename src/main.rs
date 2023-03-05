@@ -4,6 +4,7 @@
 use bevy::prelude::*;
 use bevy::time::FixedTimestep;
 use bevy::time::Stopwatch;
+use std::time::Duration;
 
 const WINDOW_WIDHT: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 800.0;
@@ -11,6 +12,7 @@ const WINDOW_HEIGHT: f32 = 800.0;
 const TIME_STEP: f32 = 1.0 / 60.0;
 
 const PLAYER_SPEED: f32 = 10.0;
+
 
 #[derive(Resource, Component)]
 struct GameState {
@@ -41,7 +43,6 @@ struct Player;
 struct ShootEvent {
     pub x: f32,
     pub y: f32,
-    pub shooting: bool,
 }
 
 #[derive(Component)]
@@ -72,11 +73,16 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
         boss_phase: false,
     });
 
+    commands.insert_resource(GameState {
+        score: 0,
+        wave: 1,
+    });
+
     //PlayerShip
     commands.spawn((
         SpriteBundle {
             transform: Transform {
-                scale: Vec3::new(2.0, 2.0, 0.0),
+                scale: Vec3::new(2.0, 2.0, 2.0),
                 ..default()
             },
             texture: asset_server.load("ShipTexture.png"),
@@ -94,48 +100,33 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn spawn_laser(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
-    shoot_events: EventReader<ShootEvent>,
+    mut shoot_events_reader: EventReader<ShootEvent>,
 ) {
-    for shoot_event in shoot_events.iter() {
-        if shoot_event.shooting == false {
-            commands.spawn((
-                Laser,
-                Velocity { x: 0.0, y: 15.0 },
-                SpriteBundle {
-                    transform: Transform {
-                        translation: Vec3::new(shoot_event.x, shoot_event.y, 2.0),
-                        ..default()
-                    },
-                    texture: asset_server.load("BlueLaser.png"),
+    for shoot_event in shoot_events_reader.iter() {
+        commands.spawn((
+            Laser,
+            Velocity { x: 0.0, y: 15.0 },
+            SpriteBundle {
+                transform: Transform {
+                    translation: Vec3::new(shoot_event.x, shoot_event.y, 1.0),
                     ..default()
                 },
-            ));
-            shoot_event.shooting = true;
-        }
-    }
-}
-
-fn shoot_delay(
-    shooting_events: EventReader<ShootEvent>,
-    time: Res<Time>,
-    mut query: Query<&mut ShootTimer>,
-) {
-    let mut sw = query.single_mut();
-    for shooting_event in shooting_events.iter() {
-        if shooting_event.shooting {
-            if sw.time.elapsed_secs() > 0.5 {
-                shooting_event.shooting = false;
-                sw.time.reset();
-            }
-        }
+                texture: asset_server.load("BlueLaser.png"),
+                ..default()
+            },
+        ));
     }
 }
 
 fn player_controll(
     mut event: EventWriter<ShootEvent>,
+    time: Res<Time>,
     input: Res<Input<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Player>>,
+    mut shoot_query: Query<&mut ShootTimer>,
+
 ) {
+    let mut shoot_timer = shoot_query.single_mut();
     for (mut velocity, transform) in &mut query {
         let mut dir_x = 0.0;
         let mut dir_y = 0.0;
@@ -154,11 +145,14 @@ fn player_controll(
         }
 
         if input.pressed(KeyCode::Space) {
-            event.send(ShootEvent {
-                x: transform.translation.x,
-                y: transform.translation.y,
-                shooting: false,
-            })
+           shoot_timer.time.tick(Duration::from_secs_f32(1.0/60.0));
+            if shoot_timer.time.elapsed_secs() > 0.5 {
+                event.send(ShootEvent {
+                    x: transform.translation.x,
+                    y: transform.translation.y,
+                });
+                shoot_timer.time.reset();
+            }
         }
         velocity.x = dir_x * PLAYER_SPEED;
         velocity.y = dir_y * PLAYER_SPEED;
