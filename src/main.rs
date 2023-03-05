@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 use bevy::time::FixedTimestep;
+use bevy::time::Stopwatch;
 
 const WINDOW_WIDHT: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 800.0;
@@ -24,6 +25,11 @@ struct GameRules {
 }
 
 #[derive(Component)]
+struct ShootTimer {
+    time: Stopwatch,
+}
+
+#[derive(Component)]
 struct Velocity {
     x: f32,
     y: f32,
@@ -35,6 +41,7 @@ struct Player;
 struct ShootEvent {
     pub x: f32,
     pub y: f32,
+    pub shooting: bool,
 }
 
 #[derive(Component)]
@@ -77,28 +84,58 @@ fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Player,
         Health { amount: 100 },
+        ShootTimer {
+            time: Stopwatch::new(),
+        },
         Velocity { x: 0.0, y: 0.0 },
     ));
 }
 
-fn spawn_laser(asset_server: Res<AssetServer>, mut commands: Commands, mut shoot_events: EventReader<ShootEvent>) {
-
+fn spawn_laser(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    shoot_events: EventReader<ShootEvent>,
+) {
     for shoot_event in shoot_events.iter() {
-        commands.spawn((
-            Laser,
-            Velocity {x: 0.0, y: 15.0},
-            SpriteBundle {
-                transform: Transform {
-                    translation: Vec3::new(shoot_event.x, shoot_event.y, 2.0),
+        if shoot_event.shooting == false {
+            commands.spawn((
+                Laser,
+                Velocity { x: 0.0, y: 15.0 },
+                SpriteBundle {
+                    transform: Transform {
+                        translation: Vec3::new(shoot_event.x, shoot_event.y, 2.0),
+                        ..default()
+                    },
+                    texture: asset_server.load("BlueLaser.png"),
                     ..default()
                 },
-                texture: asset_server.load("BlueLaser.png"),
-                ..default()
-        }));
+            ));
+            shoot_event.shooting = true;
+        }
     }
 }
 
-fn player_controll(mut event: EventWriter<ShootEvent>, input: Res<Input<KeyCode>>, mut query: Query<(&mut Velocity, &Transform), With<Player>>) {
+fn shoot_delay(
+    shooting_events: EventReader<ShootEvent>,
+    time: Res<Time>,
+    mut query: Query<&mut ShootTimer>,
+) {
+    let mut sw = query.single_mut();
+    for shooting_event in shooting_events.iter() {
+        if shooting_event.shooting {
+            if sw.time.elapsed_secs() > 0.5 {
+                shooting_event.shooting = false;
+                sw.time.reset();
+            }
+        }
+    }
+}
+
+fn player_controll(
+    mut event: EventWriter<ShootEvent>,
+    input: Res<Input<KeyCode>>,
+    mut query: Query<(&mut Velocity, &Transform), With<Player>>,
+) {
     for (mut velocity, transform) in &mut query {
         let mut dir_x = 0.0;
         let mut dir_y = 0.0;
@@ -120,13 +157,12 @@ fn player_controll(mut event: EventWriter<ShootEvent>, input: Res<Input<KeyCode>
             event.send(ShootEvent {
                 x: transform.translation.x,
                 y: transform.translation.y,
+                shooting: false,
             })
         }
         velocity.x = dir_x * PLAYER_SPEED;
         velocity.y = dir_y * PLAYER_SPEED;
     }
-
-
 }
 
 fn move_system(mut query: Query<(&mut Transform, &Velocity)>) {
@@ -172,7 +208,7 @@ fn main() {
                 .with_system(player_controll)
                 .with_system(move_system)
                 .with_system(collision_check)
-                .with_system(spawn_laser)
+                .with_system(spawn_laser),
         )
         .add_system(bevy::window::close_on_esc)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
