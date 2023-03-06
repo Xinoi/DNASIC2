@@ -68,6 +68,14 @@ fn setup() {
     println!("Startet");
 }
 
+fn mutate_coords(vec: Vec3) -> Vec2 {
+    let w_widht = WINDOW_WIDHT;
+    let w_height = WINDOW_WIDHT;
+    
+    Vec2::new(vec.x + WINDOW_WIDHT/2.0, vec.y + WINDOW_HEIGHT/2.0)
+    
+}
+
 fn setup_level(mut commands: Commands, asset_server: Res<AssetServer>) {
     //game Rules
     commands.insert_resource(GameRules {
@@ -165,13 +173,20 @@ fn player_rotation(
     player_query: Query<&mut Transform, With<Player>>,
     windows: Res<Windows>,
 ) {
+    let transform = player_query.single();
     let win = windows.get_primary().expect("no primary window");
     let mouse_pos: Vec2 = match win.cursor_position() {
         Some(num) => num,
         None => Vec2::new(0.0, 0.0),
     };
-    
-    println!("{}, {}", mouse_pos.x, mouse_pos.y);
+
+    let mutated_player_coords = mutate_coords(transform.translation);
+   
+    let linear_vec = Vec2::new(1.0, 0.0);
+    let player_mouse_vec = Vec2::new(mouse_pos.x - mutated_player_coords.x, mouse_pos.y - mutated_player_coords.y);
+    let angle_linear_mouse = linear_vec.angle_between(player_mouse_vec);
+    println!("{angle_linear_mouse}");
+
 }
 
 fn move_system(mut query: Query<(&mut Transform, &Velocity)>) {
