@@ -5,6 +5,9 @@ use bevy::prelude::*;
 use bevy::time::FixedTimestep;
 use bevy::time::Stopwatch;
 use std::time::Duration;
+use std::f64::consts::PI;
+
+mod vectors;
 
 const WINDOW_WIDHT: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 800.0;
@@ -170,22 +173,25 @@ fn player_controll(
 }
 
 fn player_rotation(
-    player_query: Query<&mut Transform, With<Player>>,
+    mut player_query: Query<&mut Transform, With<Player>>,
     windows: Res<Windows>,
 ) {
-    let transform = player_query.single();
+    let mut transform = player_query.single_mut();
     let win = windows.get_primary().expect("no primary window");
     let mouse_pos: Vec2 = match win.cursor_position() {
         Some(num) => num,
         None => Vec2::new(0.0, 0.0),
     };
+    
+    //transform.looking_at() would have done it too ... but i saw it too late :(
 
     let mutated_player_coords = mutate_coords(transform.translation);
    
     let linear_vec = Vec2::new(1.0, 0.0);
     let player_mouse_vec = Vec2::new(mouse_pos.x - mutated_player_coords.x, mouse_pos.y - mutated_player_coords.y);
     let angle_linear_mouse = linear_vec.angle_between(player_mouse_vec);
-    println!("{angle_linear_mouse}");
+    
+    transform.rotation = Quat::from_rotation_z(angle_linear_mouse - (PI as f32/2.0));
 
 }
 

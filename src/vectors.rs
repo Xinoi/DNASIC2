@@ -14,7 +14,7 @@ impl Vector2D {
 
 //doesnt work
 pub fn angle(vec1: Vector2D, vec2: Vector2D) -> f32 {
-    let scalar = (vec1.x*vec2.x)+(vec1.x*vec2.y);
+    let scalar = (vec1.x*vec2.x)+(vec1.y*vec2.y);
 
     let betrag1 = ((vec1.x*vec1.x) + (vec2.y*vec2.y)).sqrt(); 
     let betrag2 = ((vec2.x*vec2.x) + (vec2.y*vec2.y)).sqrt(); 
