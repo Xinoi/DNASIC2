@@ -15,8 +15,9 @@ const WINDOW_HEIGHT: f32 = 800.0;
 const TIME_STEP: f32 = 1.0 / 60.0;
 
 const PLAYER_SPEED: f32 = 10.0;
+const BULLET_SPEED: f32 = 20.0;
 
-const X_LINEAR: Vec2 = Vec2::new(1.0, 0.0);
+const X_LINEAR: Vec2 = Vec2::new(1.0, 1.0);
 
 #[derive(Component)]
 struct MainCamera;
@@ -123,10 +124,10 @@ fn spawn_laser(
         
         commands.spawn((
             Laser,
-            Velocity {x: shoot_event.vel.x, y: shoot_event.vel.y},
+            Velocity {x: shoot_event.vel.x * BULLET_SPEED, y: shoot_event.vel.y * BULLET_SPEED},
             SpriteBundle {
                 transform: Transform {
-                    translation: Vec3::new(shoot_event.x, shoot_event.y, 1.0),
+                    translation: Vec3::new(shoot_event.x, shoot_event.y, 0.0),
                     rotation: shoot_event.rotation,
                     ..default()
                 },
@@ -173,13 +174,19 @@ fn player_controll(
             dir_x = -1.0;
         }
 
+        let mutated_player_coords = mutate_coords(transform.translation);
+   
+        let linear_vec = Vec2::new(1.0, 0.0);
+        let player_mouse_vec = Vec2::new(mouse_pos.x - mutated_player_coords.x, mouse_pos.y - mutated_player_coords.y);
+        let angle_linear_mouse = linear_vec.angle_between(player_mouse_vec);
+
         if input.pressed(KeyCode::Space) {
            shoot_timer.time.tick(Duration::from_secs_f32(1.0/60.0));
             if shoot_timer.time.elapsed_secs() > 0.5 {
                 event.send(ShootEvent {
                     x: transform.translation.x,
                     y: transform.translation.y,
-                    vel: Vec2::from_angle(transform.rotation.z).rotate(X_LINEAR),
+                    vel: Vec2::from_angle(angle_linear_mouse),
                     rotation: transform.rotation,
                 });
                 shoot_timer.time.reset();
