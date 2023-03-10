@@ -180,9 +180,13 @@ fn player_controll(
         let player_mouse_vec = Vec2::new(mouse_pos.x - mutated_player_coords.x, mouse_pos.y - mutated_player_coords.y);
         let angle_linear_mouse = linear_vec.angle_between(player_mouse_vec);
 
+
+        shoot_timer.time.tick(Duration::from_secs_f32(1.0/60.0));
+        if shoot_timer.time.elapsed_secs() > 100.0 {
+            shoot_timer.time.set_elapsed(Duration::from_secs_f32(5.0));
+        }
         if input.pressed(KeyCode::Space) {
-           shoot_timer.time.tick(Duration::from_secs_f32(1.0/60.0));
-            if shoot_timer.time.elapsed_secs() > 0.5 {
+            if shoot_timer.time.elapsed_secs() >= 0.25 {
                 event.send(ShootEvent {
                     x: transform.translation.x,
                     y: transform.translation.y,
