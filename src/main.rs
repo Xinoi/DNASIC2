@@ -18,8 +18,6 @@ const TIME_STEP: f32 = 1.0 / 60.0;
 const PLAYER_SPEED: f32 = 10.0;
 const BULLET_SPEED: f32 = 20.0;
 
-const X_LINEAR: Vec2 = Vec2::new(1.0, 1.0);
-
 #[derive(Component)]
 struct MainCamera;
 
@@ -122,8 +120,8 @@ fn spawn_laser(
     mut shoot_events_reader: EventReader<ShootEvent>,
 ) {
     for shoot_event in shoot_events_reader.iter() {
-        
-        commands.spawn((
+
+        let laser_ent = commands.spawn((
             Laser,
             Velocity {x: shoot_event.vel.x * BULLET_SPEED, y: shoot_event.vel.y * BULLET_SPEED},
             SpriteBundle {
@@ -232,7 +230,11 @@ fn move_system(mut query: Query<(&mut Transform, &Velocity)>) {
     }
 }
 
-fn collision_check(mut player_query: Query<&mut Transform, With<Player>>) {
+fn collision_check(
+    mut commands: Commands,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    laser_query: Query<(&Transform, Entity), (With<Laser>, Without<Player>)>
+) {
     //Player
     let mut player_trans = player_query.single_mut();
     let fixed_window_x = WINDOW_WIDHT / 2.0;
@@ -240,6 +242,7 @@ fn collision_check(mut player_query: Query<&mut Transform, With<Player>>) {
     let player_x = player_trans.translation.x;
     let player_y = player_trans.translation.y;
 
+    //player-borders
     if player_x > fixed_window_x {
         player_trans.translation.x = fixed_window_x;
     } else if player_x < -fixed_window_x {
@@ -249,6 +252,18 @@ fn collision_check(mut player_query: Query<&mut Transform, With<Player>>) {
     } else if player_y < -fixed_window_y {
         player_trans.translation.y = -fixed_window_y;
     }
+
+    //bullet outer scope
+
+    for (laser_trans, entity) in laser_query.iter() {
+        let laser_x = laser_trans.translation.x;
+        let laser_y = laser_trans.translation.y;
+        if laser_x > fixed_window_x || laser_x < -fixed_window_x || laser_y > fixed_window_y || laser_y < -fixed_window_y {
+            commands.entity(entity).despawn();
+        }
+    }
+
+    
 }
 
 
