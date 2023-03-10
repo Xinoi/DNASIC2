@@ -16,6 +16,8 @@ const TIME_STEP: f32 = 1.0 / 60.0;
 
 const PLAYER_SPEED: f32 = 10.0;
 
+const X_LINEAR: Vec2 = Vec2::new(1.0, 0.0);
+
 #[derive(Component)]
 struct MainCamera;
 
@@ -177,7 +179,7 @@ fn player_controll(
                 event.send(ShootEvent {
                     x: transform.translation.x,
                     y: transform.translation.y,
-                    vel: Vec2::new(mouse_pos.x - transform.translation.x, mouse_pos.y - transform.translation.y),
+                    vel: Vec2::from_angle(transform.rotation.z).rotate(X_LINEAR),
                     rotation: transform.rotation,
                 });
                 shoot_timer.time.reset();
