@@ -4,6 +4,7 @@
 use bevy::prelude::*;
 use bevy::time::FixedTimestep;
 use bevy::time::Stopwatch;
+use bevy::window::CursorGrabMode;
 use std::time::Duration;
 use std::f64::consts::PI;
 
@@ -277,6 +278,9 @@ fn main() {
                 title: "DNAISC2".to_string(),
                 width: WINDOW_WIDHT,
                 height: WINDOW_HEIGHT,
+                resizable: false,
+                cursor_grab_mode: CursorGrabMode::Locked,
+
                 ..default()
             },
             ..default()
