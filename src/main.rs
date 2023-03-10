@@ -7,7 +7,7 @@ use bevy::time::Stopwatch;
 use std::time::Duration;
 use std::f64::consts::PI;
 
-mod vectors;
+mod my_math;
 
 const WINDOW_WIDHT: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 800.0;
@@ -48,6 +48,8 @@ struct Player;
 struct ShootEvent {
     pub x: f32,
     pub y: f32,
+    pub vel: Vec2,
+    pub rotation: Quat,
 }
 
 #[derive(Component)]
@@ -116,12 +118,14 @@ fn spawn_laser(
     mut shoot_events_reader: EventReader<ShootEvent>,
 ) {
     for shoot_event in shoot_events_reader.iter() {
+        
         commands.spawn((
             Laser,
-            Velocity { x: 0.0, y: 15.0 },
+            Velocity {x: shoot_event.vel.x, y: shoot_event.vel.y},
             SpriteBundle {
                 transform: Transform {
                     translation: Vec3::new(shoot_event.x, shoot_event.y, 1.0),
+                    rotation: shoot_event.rotation,
                     ..default()
                 },
                 texture: asset_server.load("BlueLaser.png"),
@@ -137,12 +141,22 @@ fn player_controll(
     input: Res<Input<KeyCode>>,
     mut query: Query<(&mut Velocity, &Transform), With<Player>>,
     mut shoot_query: Query<&mut ShootTimer>,
+    windows: Res<Windows>,
 
 ) {
+    let win = windows.get_primary().expect("no primary window");
+
+    let mouse_pos: Vec2 = match win.cursor_position() {
+        Some(num) => num,
+        None => Vec2::new(0.0, 0.0),
+    };
+
     let mut shoot_timer = shoot_query.single_mut();
     for (mut velocity, transform) in &mut query {
         let mut dir_x = 0.0;
         let mut dir_y = 0.0;
+
+        let axis: (Vec3, f32) = transform.rotation.to_axis_angle();
 
         if input.pressed(KeyCode::W) {
             dir_y = 1.0;
@@ -163,6 +177,8 @@ fn player_controll(
                 event.send(ShootEvent {
                     x: transform.translation.x,
                     y: transform.translation.y,
+                    vel: Vec2::new(mouse_pos.x - transform.translation.x, mouse_pos.y - transform.translation.y),
+                    rotation: transform.rotation,
                 });
                 shoot_timer.time.reset();
             }
