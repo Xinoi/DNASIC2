@@ -32,17 +32,14 @@ fn player_controll(
 
         let axis: (Vec3, f32) = transform.rotation.to_axis_angle();
 
-        if input.pressed(KeyCode::W) {
-            dir_y = 1.0;
-        }
-        if input.pressed(KeyCode::S) {
-            dir_y = -1.0;
-        }
-        if input.pressed(KeyCode::D) {
-            dir_x = 1.0;
-        }
-        if input.pressed(KeyCode::A) {
-            dir_x = -1.0;
+        for key in input.get_pressed() {
+            match key {
+                KeyCode::W => dir_y = 1.0,
+                KeyCode::S => dir_y = -1.0,
+                KeyCode::D => dir_x = 1.0,
+                KeyCode::A => dir_x = -1.0,
+                _ => {},
+            };
         }
 
         let mutated_player_coords = mutate_coords(transform.translation);
