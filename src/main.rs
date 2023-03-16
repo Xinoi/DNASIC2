@@ -9,6 +9,7 @@ use player::*;
 
 mod my_math;
 mod player;
+mod enemies;
 
 const WINDOW_WIDHT: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 800.0;
@@ -56,15 +57,6 @@ struct Laser;
 #[derive(Component)]
 struct Health {
     amount: i32,
-}
-
-#[derive(Component)]
-enum Enemy {
-    Legionary,
-    Praetorian,
-    Penturion,
-    Praefectus,
-    Tribunus,
 }
 
 fn setup() {
@@ -197,6 +189,7 @@ fn main() {
         )
         .add_system(bevy::window::close_on_esc)
         .add_plugin(player::PlayerPlugin)
+        .add_plugin(enemies::EnemyPlugin)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "DNAISC2".to_string(),
