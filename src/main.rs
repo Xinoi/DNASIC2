@@ -52,7 +52,7 @@ struct ShootEvent {
 }
 
 #[derive(Component)]
-struct Laser;
+pub struct Laser;
 
 #[derive(Component)]
 struct Health {
