@@ -1,11 +1,15 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, time::Stopwatch};
+use std::collections::HashMap;
 
-use crate::{GameState, GameRules, my_math::Vector2D, WINDOW_WIDHT, WINDOW_HEIGHT, player::Player, Laser};
+use crate::{GameState, GameRules, my_math::Vector2D, WINDOW_WIDHT, WINDOW_HEIGHT, player::Player, Laser, Health, ShootTimer, Velocity};
+
+
+//health_amount[leagionary, praetorian]
+pub const HEALTH_AMOUNT: [i32; 2] = [100, 500];
 
 #[derive(Component)]
 struct Enemy {
     enemy_type: EnemieType,
-    spawn_coord: Vec2,
 }
 
 #[derive(Clone, Debug)]
@@ -46,6 +50,10 @@ impl SpawnPoint {
             false
         }
     }
+
+    fn get_vec3 (&self) -> Vec3 {
+        Vec3::new(self.x, self.y, 1.0)
+    }
 }
 
 enum EnemieType {
@@ -74,7 +82,7 @@ fn get_enemy_count (wave: i32) -> (i32, f32, bool) {
 
 }
 
-fn get_free_spawnpoints (query: Query<&Transform, Without<Laser>>) -> Vec<SpawnPoint>{
+fn get_free_spawnpoints (query: &Query<&Transform, Without<Laser>>) -> Vec<SpawnPoint>{
 
     let window_tenth: (f32, f32) = (WINDOW_WIDHT/10.0, WINDOW_HEIGHT/10.0);
     let mut all_spawn_points: Vec<SpawnPoint> = Vec::new();
@@ -86,7 +94,7 @@ fn get_free_spawnpoints (query: Query<&Transform, Without<Laser>>) -> Vec<SpawnP
     }
 
     let mut free_spawn_points: Vec<SpawnPoint> = all_spawn_points.clone();
-    for pos in &query {
+    for pos in query {
         for i in all_spawn_points.iter_mut().enumerate() {
             if i.1.in_vec_radius(pos.translation) {
                 free_spawn_points[i.0].empty = false;
@@ -98,18 +106,80 @@ fn get_free_spawnpoints (query: Query<&Transform, Without<Laser>>) -> Vec<SpawnP
 
 }
 
-fn spawn_enemy (
-    commands: &mut Commands,
+fn spawn (
+    pos_query: Query<&Transform, Without<Laser>>,
+    mut commands: Commands,
     gamerules: Res<GameRules>,
     gamestate: Res<GameState>,
+    asset_server: Res<AssetServer>
 ) {
 
-    let enemies = get_enemy_count(gamestate.wave);
+    let enemy_count = get_enemy_count(gamestate.wave);
+    let free_points = get_free_spawnpoints(&pos_query);
+
+    //queue for enemys that should spawn -> Hashmap: [enemy_id, enemytype: (0:normal, 1:praetorian)]
+    let mut enemy_queue = HashMap::new();
+
+    if enemy_count.2 == true {
+        //boss_phase
+    }else {
+        for i in 0..enemy_count.0 {
+            enemy_queue.insert(i, 0);
+        }
+        for i in 0..enemy_count.1 as i32 {
+            if let Some(key) = enemy_queue.get_mut(&i) {
+                *key = 1;
+            }
+        }
+    }
+
+    for entry in enemy_queue.iter().enumerate() {
+        
+        if *entry.1.1 == 0 {
+            commands.spawn((
+            SpriteBundle {
+                texture: asset_server.load("legionary.png"),
+                transform: Transform { 
+                    translation: free_points[entry.0].get_vec3(),
+                    ..default()
+                },
+                ..default()
+            },
+            Enemy {
+                enemy_type: EnemieType::Legionary,
+            },
+            Health { amount: HEALTH_AMOUNT[0]},
+            Velocity { x: 0.0, y: 0.0 },
+        
+        ));
+        }
+
+        if *entry.1.1 == 1 {
+            commands.spawn((
+            SpriteBundle {
+                texture: asset_server.load("praetorian.png"),
+                transform: Transform { 
+                    translation: free_points[entry.0].get_vec3(),
+                    ..default()
+                },
+                ..default()
+            },
+            Enemy {
+                enemy_type: EnemieType::Legionary,
+            },
+            Health { amount: HEALTH_AMOUNT[1]},
+            Velocity { x: 0.0, y: 0.0 },
+        
+        ));
+        }
+
+    }
+
 }
 
 pub struct EnemyPlugin;
 impl Plugin for EnemyPlugin {
     fn build(&self, app: &mut App) {
-
+        app.add_system(spawn);
     }
 }
