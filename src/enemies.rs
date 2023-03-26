@@ -1,7 +1,7 @@
-use bevy::{prelude::*, time::Stopwatch};
+use bevy::prelude::*;
 use std::collections::HashMap;
 
-use crate::{GameState, GameRules, my_math::Vector2D, WINDOW_WIDHT, WINDOW_HEIGHT, player::Player, Laser, Health, ShootTimer, Velocity};
+use crate::{GameState, GameRules, WINDOW_WIDHT, WINDOW_HEIGHT, Laser, Health, Velocity};
 
 
 //health_amount[leagionary, praetorian]
